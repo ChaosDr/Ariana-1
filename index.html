@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Composed Hour: Ariana</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15171c; --panel:#1f2128; --panel-edge:#34363f;
+    --lamp:#c9a876; --lamp-dim:#a3845e; --teal:#9fb3c9;
+    --text:#eceef2; --text-dim:#9a9fa8; --tag:#cdbfae;
+    box-sizing:border-box;
+  }
+  *{box-sizing:inherit;}
+  html,body{ height:100%; margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,sans-serif; overflow:hidden; }
+  #stage{ position:relative; width:100%; height:100%;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+
+  #scene{ position:absolute; inset:0;
+    background: radial-gradient(ellipse 50% 40% at 80% 18%, rgba(201,168,118,0.18), transparent 60%),
+      linear-gradient(160deg, #121319 0%, #15171c 55%, #0f1014 100%); }
+  .shimmer{ position:absolute; top:9%; right:7%; width:140px; height:140px; }
+  .shimmer span{ position:absolute; width:5px; height:5px; background:var(--lamp); border-radius:50%;
+    opacity:.5; animation:twinkle 3.4s ease-in-out infinite; box-shadow:0 0 6px 1px rgba(201,168,118,0.5); }
+  .shimmer span:nth-child(1){ top:10px; left:30px; animation-delay:.2s; }
+  .shimmer span:nth-child(2){ top:50px; left:80px; animation-delay:1.4s; }
+  .shimmer span:nth-child(3){ top:90px; left:20px; animation-delay:2.3s; }
+  .shimmer span:nth-child(4){ top:30px; left:110px; animation-delay:.9s; }
+  @keyframes twinkle{ 0%,100%{ opacity:.15; transform:scale(.7);} 50%{ opacity:.8; transform:scale(1.15);} }
+  .phoneglow{ position:absolute; left:7%; bottom:10%; width:46px; height:80px; border-radius:6px;
+    background:linear-gradient(180deg, rgba(159,179,201,0.22), rgba(159,179,201,0.05));
+    border:1px solid rgba(159,179,201,0.25); box-shadow:0 0 30px 6px rgba(159,179,201,0.12);
+    animation:pulseglow 5s ease-in-out infinite; }
+  @keyframes pulseglow{ 0%,100%{ opacity:.6;} 50%{ opacity:1;} }
+
+  #title{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:24px; gap:14px; background:rgba(12,13,16,0.4); overflow-y:auto; }
+  #title h1{ font-family:'Fraunces',serif; font-size:clamp(24px,5.2vw,42px); margin:0; }
+  #title p{ color:var(--text-dim); margin:0; max-width:480px; font-size:14.5px; line-height:1.6; }
+  #title p.note{ font-size:12px; opacity:.75; max-width:440px; }
+  button{ font-family:'Inter',sans-serif; cursor:pointer; border:none; }
+  .btn-primary{ background:var(--lamp); color:#241704; font-weight:600; font-size:16px;
+    padding:12px 30px; border-radius:3px; transition:transform .15s ease, background .15s ease; }
+  .btn-primary:hover{ background:#ddbd8c; transform:translateY(-1px); }
+  .btn-primary:focus-visible,.choice-btn:focus-visible{ outline:2px solid var(--lamp); outline-offset:3px; }
+
+  #hud{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 12px); left:50%; transform:translateX(-50%);
+    width:min(560px,92%); background:rgba(14,15,19,0.82); border:1px solid var(--panel-edge); border-radius:6px;
+    padding:10px 14px; display:flex; flex-direction:column; gap:8px; z-index:3; }
+  .meter{ display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-dim); }
+  .m-label{ width:84px; flex-shrink:0; }
+  .m-track{ position:relative; flex:1; height:8px; background:#0c0d10; border-radius:4px; overflow:hidden; }
+  .m-fill{ position:relative; height:100%; width:0; border-radius:4px; transition:width .5s ease, background .5s ease; background:#9fb3c9; }
+  .m-state{ width:92px; text-align:right; flex-shrink:0; color:var(--text); }
+
+  #dialogue-wrap{ position:absolute; left:0; right:0; bottom:0; padding:0 4%;
+    padding-bottom:calc(4% + env(safe-area-inset-bottom,0px)); display:flex; justify-content:center; }
+  #box{ width:100%; max-width:800px; max-height:66vh; overflow-y:auto; background:linear-gradient(180deg,var(--panel),#17181d);
+    border:1px solid var(--panel-edge); border-radius:6px; padding:18px 24px 20px;
+    box-shadow:0 -8px 40px rgba(0,0,0,0.4); cursor:pointer; }
+  #box.narration{ background:linear-gradient(180deg,#1b1c22,#111216); }
+  #box.thought{ background:linear-gradient(180deg,#1c242c,#121a21); border-color:#45606f; }
+  #box.thought #speaker{ color:var(--teal); font-style:italic; }
+  #box.thought #line{ color:#cfe0ea; font-style:italic; font-size:15px; }
+  #box-inner{ display:flex; gap:16px; align-items:flex-start; }
+  #portrait{ width:78px; height:78px; flex-shrink:0; border-radius:6px; overflow:hidden;
+    background:#101115; border:1px solid var(--panel-edge); transition:opacity .2s ease, filter .2s ease; }
+  #portrait.hidden-p{ display:none; }
+  #portrait.warn{ border-color:var(--lamp); }
+  #portrait.hot{ border-color:#c9563f; }
+  #text-col{ flex:1; min-width:0; }
+  #speaker{ font-family:'Fraunces',serif; color:var(--lamp); font-size:15px; margin:0 0 8px 0; }
+  #box.narration #speaker{ color:var(--text-dim); font-style:italic; }
+  #line{ margin:0; font-size:16.5px; line-height:1.55; min-height:2.4em; }
+  #box.narration #line{ color:var(--text-dim); font-style:italic; font-size:15px; }
+  #hint{ text-align:right; color:var(--text-dim); font-size:12px; margin-top:8px; opacity:.8; }
+  #choices{ display:flex; flex-direction:column; gap:10px; padding:6px 0 4px; }
+  .choice-btn{ background:rgba(159,179,201,0.08); border:1px solid var(--panel-edge); color:var(--text);
+    text-align:left; padding:11px 16px 12px; border-radius:4px; transition:background .15s ease, border-color .15s ease; }
+  .choice-btn:hover{ background:rgba(159,179,201,0.18); border-color:var(--teal); }
+  .choice-label{ font-size:14.5px; display:block; line-height:1.45; }
+  .hidden{ display:none !important; }
+
+  #results{ position:absolute; inset:0; overflow-y:auto; background:var(--bg); padding:6% 6% 10%; }
+  #results-inner{ max-width:680px; margin:0 auto; }
+  .card{ background:var(--panel); border:1px solid var(--panel-edge); border-radius:6px; padding:24px 26px; margin-bottom:22px; }
+  .archetype-name{ font-family:'Fraunces',serif; font-size:clamp(24px,4.5vw,32px); color:var(--lamp); margin:0 0 8px; }
+  .archetype-desc{ font-size:15px; line-height:1.6; margin:0 0 6px; }
+  .clinical-note{ font-size:13px; color:var(--text-dim); border-top:1px solid var(--panel-edge); padding-top:12px; margin-top:14px; line-height:1.55; }
+  .legend{ font-size:12px; color:var(--text-dim); margin:6px 0 0; }
+  h2.section-title{ font-family:'Fraunces',serif; font-size:19px; margin:0 0 10px; }
+  .prose{ font-size:14.5px; line-height:1.65; margin:0 0 12px; }
+  .prose.small{ color:var(--text-dim); font-size:13px; }
+  ul.prompts{ margin:0 0 16px; padding-left:20px; color:var(--text-dim); font-size:14px; line-height:1.7; }
+  .rev{ border-top:1px solid var(--panel-edge); padding:14px 0 6px; }
+  .rev-title{ font-family:'Fraunces',serif; font-size:16px; color:var(--lamp); margin-bottom:6px; }
+  .rev-said{ font-size:14.5px; margin:0 0 8px; }
+  .rev-react{ font-size:13.5px; font-style:italic; color:var(--text-dim); margin:0 0 8px; }
+  .chip{ display:inline-block; font-size:11.5px; background:rgba(159,179,201,0.16); color:var(--tag); padding:2px 9px; border-radius:10px; margin:2px 6px 2px 0; }
+  .chip.ok{ background:rgba(159,179,201,0.3); color:#dbe6ec; }
+  .chip.bad{ background:rgba(201,86,63,0.22); color:#f0b5a6; }
+  .rev-why{ font-size:13.5px; color:var(--text-dim); line-height:1.6; margin:8px 0; }
+  details summary{ cursor:pointer; font-size:12.5px; color:var(--text-dim); margin:4px 0 8px; }
+  .alt{ margin:0 0 12px 10px; font-size:13px; color:var(--text-dim); line-height:1.55; }
+  textarea{ width:100%; min-height:160px; background:#101115; border:1px solid var(--panel-edge); border-radius:4px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:14.5px; padding:14px; resize:vertical; }
+  textarea:focus-visible{ outline:2px solid var(--lamp); }
+  #save-hint{ font-size:12px; color:var(--text-dim); margin-top:8px; }
+  .btn-ghost{ background:transparent; border:1px solid var(--panel-edge); color:var(--text-dim);
+    font-size:13px; padding:9px 16px; border-radius:4px; margin-top:18px; }
+  .btn-ghost:hover{ border-color:var(--teal); color:var(--text); }
+
+  @media (max-width:480px){ #box{ padding:14px 16px 16px; } #line{ font-size:15.5px; } #portrait{ width:58px; height:58px; }
+    .m-label{ width:62px;} .m-state{ width:72px;} }
+</style>
+<script type='text/javascript' nonce='hy1bXZx9u2S2t9lgvWFzsg==' src='https://0b7582c5-3998-4ac4-9bca-f607e71c643e.frame.claudeusercontent.com/rIhtBTNXokzyQWwoj2uGmhwwV5-pl59s62L-LLtGKybYlUlLUfMdIFWV5ZSLOHIDcw7hbKIYvolsvuZZDB3e0Qvw26EMRQWjXQuAdWKnT9eFnCJ6WrrXSX5CmoFMoshfQZ5uoBhRhuFwWxbWslV02xGW66XNrJ_Sgimb8J28dm5uYaD1EiBWxs_5nCKeWnICL5gptHop08XW_oBLnbnayjhZVHsFFe6MboK2Z6xcErS97C8tDzPxfE7cZWCshLlc-XNlw5hrPTiV1lgv2l-ssgf0ibinfOKFyGP4sX2n9g38z1p2n74S4FVt5PHGEtYOT3DSgOr5YJ9uMo4enckjIzLKcVYYXFXkyH-nGdIjwOjTaO8_iaJf-eDDRk-xuQ8abHFC2wII-H7L7n_szS85KTqbBTRPT1FYw_zCXBPXX8R8hxVdtQbnx8Bk4SCP-pem9eeWAnroI5tLdmk4UsW-t3FZIwWIQdwv5ECductwnopr8HklpOOYuFHxe8j3QiahwHl5J4l8_ekNYn3k2wn6NT_YQ8ShyCu32Yhqch1sC9SuInhJL9mgUkzaNImBhJvTK7eU1lPbryM3IhhNVAt1BrM7sX-z9G279NNnp8fVXQfrtQqNYLPgFELNS9eYjpiyZ_nk22E88KpWS4_YAEl4Qp5-hjJGAI6K1t8Ybni_NWBOZ-sKpQcdJvxVXiWJKqgEyOHFkPSPm6ZxCuOTDSxUFg'></script></head>
+<body>
+<div id="stage">
+  <div id="scene">
+    <div class="shimmer"><span></span><span></span><span></span><span></span></div>
+    <div class="phoneglow"></div>
+  </div>
+
+  <div id="title">
+    <p style="letter-spacing:2px; font-size:11.5px; color:var(--lamp-dim);">AN IMMERSIVE CASE STUDY EXERCISE</p>
+    <h1>The Composed Hour: Ariana</h1>
+    <p>You are the therapist. Ariana, impeccably dressed and entirely composed, arrives on time and gives you exactly what you ask for, no more. Beneath the flatness is a decade of medication, a twin she can't outrun, and a pattern with partners that puzzles everyone around her.</p>
+    <p>Two gauges track her: <strong>Detachment</strong>, how far she retreats into flatness, politeness, or her phone, and <strong>Trust</strong>, how safe she feels letting anything real surface. Push past what she can hold and she checks out entirely. Stay too gentle, and the hour stays polished and empty. There is no perfect script.</p>
+    <button class="btn-primary" id="start-btn">Begin the session</button>
+    <p class="note">A companion for the Ariana case study discussion. Best used with your group, without AI.</p>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div class="meter"><span class="m-label">Detachment</span><div class="m-track"><div class="m-fill" id="p-fill"></div></div><span class="m-state" id="p-state"></span></div>
+    <div class="meter"><span class="m-label">Trust</span><div class="m-track"><div class="m-fill" id="trust-fill" style="background:#cfa992;"></div></div><span class="m-state" id="trust-state"></span></div>
+  </div>
+
+  <div id="dialogue-wrap" class="hidden">
+    <div id="box" tabindex="0">
+      <div id="box-inner">
+        <div id="portrait">
+          <svg viewbox="0 0 100 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="#1c1e24"/>
+            <path d="M16 100c2-27 15-37 34-37s32 10 34 37z" fill="#2e3038"/>
+            <path d="M30 70c5-7 12-10 20-10s15 3 20 10c-6-2-13-3-20-3s-14 1-20 3z" fill="#3c3e48"/>
+            <circle cx="50" cy="42" r="22" fill="#dcb595"/>
+            <path d="M27 38c0-15 10-24 23-24s23 9 23 24c0 4-1 8-2 11-2-10-3-18-21-18s-19 8-21 18c-1-3-2-7-2-11z" fill="#241d16"/>
+            <path d="M27 40c-2 10 0 20 4 26 1-9 1-18-1-24z" fill="#241d16"/>
+            <path d="M73 40c2 10 0 20-4 26-1-9-1-18 1-24z" fill="#241d16"/>
+            <circle cx="72" cy="46" r="1.6" fill="var(--lamp)"/>
+            <ellipse cx="41" cy="45" rx="2.6" ry="2.4" fill="#2a1d12"/>
+            <ellipse cx="59" cy="45" rx="2.6" ry="2.4" fill="#2a1d12"/>
+            <path d="M35 40q6-3 12 0" stroke="#2a1d12" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+            <path d="M53 40q6-3 12 0" stroke="#2a1d12" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+            <path id="mouth" d="M43 58h14" stroke="#8a5a52" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div id="text-col">
+          <p id="speaker"></p>
+          <p id="line"></p>
+          <div id="choices" class="hidden"></div>
+          <div id="hint">click to continue &#9656;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div id="results-inner">
+      <div class="card">
+        <p class="archetype-name" id="end-title"></p>
+        <p class="archetype-desc" id="end-desc"></p>
+        <div id="chart"></div>
+        <p class="legend"><span style="color:#c9a876;">&#9679; Detachment</span> &nbsp;&nbsp; <span style="color:#cfa992;">&#9679; Trust</span></p>
+        <p class="clinical-note" id="end-stats"></p>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Your session, moment by moment</h2>
+        <p class="prose small">The numbers appear here for the first time. Watch especially for the moments that felt pleasant and went nowhere: with Ariana, that smoothness is often the defense working exactly as intended.</p>
+        <div id="review"></div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Reading your trace</h2>
+        <ul class="prompts">
+          <li>Where did detachment climb fastest, and what was being approached right before it did?</li>
+          <li>Which of your choices got a polished, agreeable answer that changed nothing? What did that politeness protect her from?</li>
+          <li>What did you feel during the pause, and what might that tell you about what it's like to be close to her?</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Take it to your group</h2>
+        <p class="prose"><strong>Before anything else:</strong> choose one detail from Ariana's story that you find important or puzzling, and invite each person in your group to share theirs.</p>
+        <p class="prose"><strong>Your task:</strong> build an interpretation of who Ariana is and what the flatness might be protecting. Several interpretations may fit, so use details from the case to explain yours. Start with a question that interests your group. You don't need to finish every question or agree with each other.</p>
+        <ul class="prompts">
+          <li>Who is Ariana, actually? Strip away the twin sister, the father's money, the diagnoses, the ex-boyfriends. If none of that existed, what would be left? How hard is it to build a picture of her from the inside, based only on what she values, wants, or feels, and what does that difficulty itself tell you?</li>
+          <li>She's spent her whole life next to someone who is, by the family's accounting, the successful version of her: not an older sibling, a twin. Same starting point, constant comparison. Before analyzing anything, what do you imagine that actually feels like, day to day, over ten or fifteen years?</li>
+          <li>“Emotionally stunted” or emotionally defended? Is the flatness the real Ariana, or is it doing something for her? What might it be protecting, and from what?</li>
+          <li>She performs, but for whom? Impeccably dressed, polite, composed, present but rarely fully there. Is the gap between how she presents and who she is inside unusually large, or just unusually visible? Do you recognize anything of yourself in this?</li>
+          <li>She left a fiancé over mild marijuana use, then days later was with someone dealing with serious addiction who was sometimes verbally abusive. Without judging, construct a theory for why this makes psychological sense from the inside. What might she be getting, or avoiding, in each choice?</li>
+          <li>If you were someone in her life, what would you actually try? What do you think is the real work here, and is there anything in her situation that deserves more compassion than she typically receives?</li>
+        </ul>
+        <p class="prose">When you have an initial answer, stay with it a little longer:</p>
+        <ul class="prompts">
+          <li>What in the story makes us think that?</li>
+          <li>What else could explain the same behavior?</li>
+          <li>What would we need to know to tell the difference?</li>
+        </ul>
+        <p class="prose">For example, “she's just cold” is a starting point. Is she avoiding vulnerability, has she learned that feeling doesn't get her anywhere, does chronic boredom stand in for something harder to name, or something else? Her chart also lists a formal social anxiety diagnosis that doesn't match how comfortably she attends gatherings, so it's worth asking what else could be happening, and what you'd need to know to tell the difference.</p>
+        <p class="prose small">Changing your mind, questioning an interpretation, and noticing missing information all count as contributions. You don't need to share personal experiences. Please discuss without AI. No written answers are required.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Optional notes for yourself</h2>
+        <textarea id="notes" placeholder="Anything you want to bring to your group. Nothing to submit. Autosaves in this browser only."></textarea>
+        <p id="save-hint"></p>
+      </div>
+
+      <button class="btn-ghost" id="restart-btn">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const moments = [
+    { title:"Opening the session",
+      ctx:"Ariana arrives exactly on time, impeccably dressed, and settles into the chair with the kind of composure that makes the room feel like hers. Her family's wealth means she has never wanted for anything material; what she wants is less clear, including to the people who know her best.",
+      said:"\u201cHi. Sorry, traffic. Anyway, how do you want to do this today?\u201d Her tone is pleasant. Her face gives away nothing.",
+      options:[
+        { l:"However you'd like. What's been on your mind this week?",
+          t:"I want to hand her the opening rather than fill the silence for her. She answers direct questions precisely and rarely goes beyond them, so I'm curious what she chooses to bring, if anything.",
+          r:"\u201cNot much, really. The usual.\u201d She glances at her phone, then sets it face down, which might be an effort.",
+          s:-3,u:7,d:1,
+          w:"An open opening respects her pace. 'The usual' comes first, but setting the phone down is a small, visible effort." },
+        { l:"You seem very put together. Is that effortful, or does it just come naturally?",
+          t:"The impeccable presentation is one of the clearest things about her, and I'd like to know if it costs her anything.",
+          r:"She looks faintly amused. \u201cIt's just how I am. Is that a problem?\u201d",
+          s:8,u:5,d:2,
+          w:"Names the presentation directly. Mild risk of sounding like a challenge to her polish, but she stays engaged and gives a flicker of her 'harmless or misconstrued' defense." },
+        { l:"Let's start with how things have been with your family this week.",
+          t:"Family is clearly central to her story, so I want to get there quickly.",
+          r:"\u201cFine. Same as always.\u201d Her voice flattens slightly, and she checks her phone again.",
+          s:12,u:-2,d:0,
+          w:"Jumping straight to family this early, before any safety exists, reads as an agenda. She retreats into the flattest version of her answer." },
+        { l:"No agenda today. We can sit in silence if that's what you need.",
+          t:"I want to signal that nothing is required of her here, which might be rare for her.",
+          r:"She blinks, surprised. \u201cI don't think anyone's ever said that to me in here before.\u201d A beat of something real crosses her face, then it's gone.",
+          s:-6,u:9,d:1,
+          w:"Removing all demand is unusual for her and briefly breaks through the polish, though a flicker is all it produces so far." }
+      ]},
+    { title:"\u201cEmotionally stunted\u201d",
+      ctx:"Friends, family, and her most recent ex have all described Ariana's reactions as muted or hard to read. She says it hurts to be called emotionally stunted, then typically shrugs when asked to say more.",
+      said:"\u201cPeople call me a statue, basically. Emotionally stunted. It's not exactly a secret how I come across.\u201d (she says this flatly, almost reciting it)",
+      options:[
+        { l:"You said it hurts to be called that. What does the hurt feel like, right now?",
+          t:"She names the hurt and usually shrugs past it. I want to stay with the feeling itself rather than the label people put on her.",
+          r:"She's quiet a moment. \u201cI don't really know how to answer that.\u201d It doesn't sound like deflection. It sounds like she genuinely doesn't have the words.",
+          s:5,u:8,d:2,
+          w:"Asks for the feeling under the label rather than the label itself, and gets an honest 'I don't know,' which may be more real than a polished answer." },
+        { l:"Do you think the flatness is just who you are, or is it doing something for you?",
+          t:"This is close to the case's central question. It could open real insight, or sound like I'm telling her she's performing rather than real.",
+          r:"\u201cDoing something for me? Like what, exactly?\u201d Her tone stays light, but she hasn't looked away.",
+          rr:"She's quiet for a long moment. \u201cMaybe it's easier than finding out what's actually under there.\u201d",
+          s:16,u:0,d:2, ripe:45,
+          w:"With trust, she can consider that the flatness might be protective rather than simply who she is. Too early, it sounds like an accusation that she's faking." },
+        { l:"People calling you 'stunted' sounds unfair, honestly.",
+          t:"I want her to feel defended against a harsh label.",
+          r:"She shrugs. \u201cIt's whatever. People think what they think.\u201d The conversation closes as quickly as it opened.",
+          s:-2,u:1,d:0, polish:true,
+          w:"Sympathetic, and she accepts it the way she accepts most things, politely, without it going anywhere. A polished non-answer, not a step forward." },
+        { l:"When your ex called you emotionally stunted, what happened right after, between you two?",
+          t:"The accusation came from somewhere specific. I want the scene, not just the label.",
+          r:"\u201cHe got angrier. I got quieter. Usual pattern.\u201d",
+          s:7,u:7,d:2,
+          w:"Grounds the label in an actual interaction rather than an abstract identity, and surfaces a pattern: his anger, her quiet, repeating." },
+        { l:"Honestly, from out here, you don't seem stunted. You seem guarded.",
+          t:"I want to offer a reframe, replacing one label with what I think is a more accurate one.",
+          r:"\u201cGuarded. Sure. Is that supposed to feel better?\u201d The sarcasm is thin armor, and for a second it slips.",
+          s:20,u:-4,d:1,
+          w:"A well-meant relabeling, but it's still a label, delivered as a verdict about who she is. She hears another person deciding what she is, even a kinder word." }
+      ]},
+    { title:"The twin",
+      ctx:"Ariana's twin sister is thriving in a high-profile career and earns frequent praise from the family. Ariana is often described as \u201caverage\u201d by comparison, and mentions the difficulty of living \u201cin someone else's shadow\u201d without saying much more.",
+      said:"\u201cMy sister's doing great, apparently. Everyone loves updating me on it, like I wouldn't otherwise know.\u201d (dry, unreadable)",
+      options:[
+        { l:"What's it actually like, hearing those updates?",
+          t:"She mentions the shadow but gives little about how it feels. I want the texture of the actual moment, not the summary.",
+          r:"\u201cI nod. I say something nice. Then I think about something else.\u201d",
+          s:4,u:8,d:2,
+          w:"Gets a concrete picture of how she survives the comparison in real time: polite on the outside, already elsewhere inside." },
+        { l:"Same parents, same starting point, a twin instead of a sibling years apart. What do you imagine that comparison has done to you over time?",
+          t:"This is close to the case's second question, and it's a lot to ask directly. I want to see if she can go there, or if it's too much too soon.",
+          r:"\u201cI don't really think about it like that.\u201d",
+          rr:"\u201cHonestly? I think I stopped trying around fourteen. Decided I'd rather not care than keep losing.\u201d",
+          s:15,u:1,d:2, ripe:40,
+          w:"With trust, this reaches something close to a real origin point for the detachment. Too early, it's too large a question and she simply declines it." },
+        { l:"It sounds exhausting, always being the comparison point.",
+          t:"I want to name the weight without asking her to analyze it yet.",
+          r:"\u201cExhausting isn't really the word I'd use. It's just how it's always been.\u201d Her voice doesn't change, but she doesn't change the subject either.",
+          s:-3,u:7,d:1,
+          w:"Validates without pushing for insight. She stays in the room, even without fully agreeing with the framing yet." },
+        { l:"Your sister sounds impressive. What would you want to be known for, if not for being her twin?",
+          t:"I want to ask about her apart from the comparison, which might be a genuinely hard question for her.",
+          r:"She opens her mouth, then closes it. \u201cI don't know. Nobody's really asked me that.\u201d",
+          s:6,u:9,d:2,
+          w:"Asks about her apart from the comparison entirely, and the silence that follows may be the most honest moment in the room so far." },
+        { l:"Do you ever feel competitive with her?",
+          t:"Direct and simple, might get a quick yes or no.",
+          r:"\u201cCompetitive, no. I gave up on that race a long time ago.\u201d The flat delivery makes it hard to tell if that's true or rehearsed.",
+          s:9,u:3,d:1,
+          w:"A fair question, though phrased this way it's easy for her to give a tidy, rehearsed-sounding answer and move on." }
+      ]},
+    { title:"Father's money, mother's silence",
+      ctx:"Ariana's closest bond is with her father, who funds her life completely, from delivered meals to frequent online purchases. He has recently begun pressuring her to do more with her life. She speaks about her mother with visible resentment and dismisses attempts at advice.",
+      said:"\u201cMy dad's started in on the 'you should be doing something with your life' thing. My mom, I don't really talk to about anything real. Different story.\u201d",
+      options:[
+        { l:"What do you think your dad is actually worried about?",
+          t:"He's funded her completely and only recently started pushing. I want to know what changed for him, which might tell me something about what's changed, or hasn't, for her.",
+          r:"\u201cThat I'll just... stay like this. I don't totally blame him.\u201d",
+          s:5,u:8,d:2,
+          w:"Gets at the father's shift in stance and, briefly, her own self-assessment, rather than staying only on the pressure she feels." },
+        { l:"What happens when your mom tries to give you advice?",
+          t:"The resentment toward her mother is visible but unexplained. I want the scene, not just the verdict.",
+          r:"\u201cShe says something. I stop listening. It's not complicated.\u201d The flatness here has an edge the rest of her answers don't.",
+          s:7,u:7,d:2,
+          w:"A short, sharp answer, and the edge in it, compared to how flat the rest of her talk is, may be worth more than a longer one." },
+        { l:"It sounds like your dad takes care of everything. Does that make it harder to want something for yourself?",
+          t:"The total financial support may remove urgency, the same way it does in other cases I've seen. I want to ask it as a real question, not an accusation.",
+          r:"\u201cMaybe. Or maybe I just don't want much. Is that allowed?\u201d",
+          s:10,u:5,d:2,
+          w:"A fair, careful question about the safety net, and she pushes back a little, though she stays in the conversation rather than shutting down." },
+        { l:"Your father sounds generous. You're lucky to have that kind of support.",
+          t:"I want to acknowledge something positive in her life.",
+          r:"\u201cSure. Lucky.\u201d The word comes out completely flat, almost sarcastic, though her face doesn't change.",
+          s:4,u:1,d:0, polish:true,
+          w:"Meant warmly, but it lands as a polite non-answer that doesn't touch what the money might also be doing to her. She agrees in the emptiest possible way." },
+        { l:"It sounds like your mother is someone you've given up on being understood by.",
+          t:"I want to name what I think is underneath the resentment, directly.",
+          r:"Something flickers, fast. \u201cThat's a dramatic way to put it.\u201d She looks at her phone.",
+          s:22,u:-6,d:1,
+          w:"Likely accurate, and delivered as a verdict about a relationship this early, it reads as exposure rather than understanding. The phone is her clearest exit." }
+      ]},
+    { title:"A pause: your own reaction", check:true,
+      ctx:"Ariana has just given you another composed, hard-to-read answer, the kind that leaves little to work with. You have a moment before continuing.",
+      said:"What are you noticing in yourself, trying to reach someone this hard to read?",
+      options:[
+        { l:"Frustrated: I can't tell if anything is landing.",
+          t:"Frustration is common with clients who are this defended, and it's useful information, not a sign you're failing. The question is what you do with it, not whether you feel it." },
+        { l:"Doubting myself: maybe I'm pushing too hard, or not hard enough.",
+          t:"This kind of self-doubt often shows up with flat-affect clients precisely because they give so little feedback. Worth noticing rather than resolving too quickly." },
+        { l:"Curious, almost intrigued by the puzzle of her.",
+          t:"Curiosity is an asset here. Worth checking whether the puzzle is pulling you toward her experience, or away from it, into your own head." },
+        { l:"Protective of her, like there's a kid in there somewhere no one looked after.",
+          t:"That instinct may be tracking something real, a comparison that started very young. Worth holding alongside whatever she actually says about herself, rather than deciding for her." },
+        { l:"A little bored, or checked out myself.",
+          t:"Worth sitting with honestly. Feeling some of what she reports feeling is itself data worth not rushing past." },
+        { l:"Something else, or not much at all.",
+          t:"Even a flat reaction in you is data. What might it mean if sitting with her leaves you feeling something close to what she describes?" }
+      ]},
+    { title:"Boredom and drama",
+      ctx:"Ariana says she feels bored at many social events, and seems most animated when drama surfaces. Friends have noticed her start provocative discussions, then step back to watch. When confronted, she calls it harmless or misconstrued.",
+      said:"\u201cMost parties are just boring. The only time anything's actually interesting is when something kicks off. I might say something a little pointed sometimes. People make it a bigger deal than it is.\u201d",
+      options:[
+        { l:"What's different in you in the moment something kicks off?",
+          t:"She says she's most animated when drama surfaces. I want to know what 'animated' actually feels like for her, since she rarely names a feeling at all.",
+          r:"\u201cAwake, maybe. Like something's actually happening.\u201d It's the most specific she's been about an internal state all session.",
+          s:4,u:9,d:2,
+          w:"Gets the most specific description of an internal state in the whole session: 'awake,' against the boredom that fills everything else." },
+        { l:"So starting something gets you a feeling nothing else does. What does that tell you?",
+          t:"I want her to draw the connection herself between provoking and relief from boredom, rather than being told it.",
+          r:"She tilts her head. \u201cThat I'm a bad person?\u201d",
+          rr:"\u201c...That maybe boredom isn't really boredom. It might be something quieter and worse.\u201d",
+          s:14,u:1,d:2, ripe:40,
+          w:"With trust, she can consider that chronic boredom might be standing in for something harder to name. Too early, she hears a moral verdict instead of a question." },
+        { l:"When people react strongly to what you say, how does that land for you?",
+          t:"She says others 'react too strongly' and rarely takes responsibility. I want her experience of their reaction, not a ruling on who's at fault.",
+          r:"\u201cHonestly, kind of satisfying. Then I feel bad about feeling that.\u201d",
+          s:8,u:8,d:2,
+          w:"Gets an unusually honest two-part answer: the satisfaction, and the guilt about the satisfaction, without asking her to defend either part." },
+        { l:"Don't you think it's a little manipulative, stirring things up and then stepping back?",
+          t:"It's the obvious reading of what she's described, and I think it's fair to name.",
+          r:"\u201cManipulative. Wow. I literally just say things. People's reactions aren't my fault.\u201d",
+          s:24,u:-7,d:0,
+          w:"Likely accurate, but delivered as a verdict rather than a question, it triggers exactly the defense the case describes: harmless, misconstrued, other people's overreaction." },
+        { l:"People do seem to react too strongly sometimes. That's on them, not you.",
+          t:"I want to take her side in this, at least for now.",
+          r:"\u201cRight. Exactly.\u201d She seems pleased, and nothing more is said about it.",
+          s:-4,u:2,d:0, polish:true,
+          w:"Sides with her account entirely, which she accepts easily. It leaves the pattern, and whatever boredom is standing in for, completely untouched." }
+      ]},
+    { title:"The relationship pattern",
+      ctx:"Ariana left her fiancé over his new recreational marijuana use, calling it a deal-breaker. Within days she was dating someone with a much more severe addiction, who sometimes complained about her emotional flatness in ways she describes as verbally abusive. People around her find the sequence hard to understand.",
+      said:"\u201cPeople don't get why I left my fiancé over weed and then dated someone who was actually a mess. I don't really get it either, if I'm honest.\u201d",
+      options:[
+        { l:"What was different about how you felt around each of them?",
+          t:"I want her felt experience of each relationship, without judgment, not a ranking of which partner was worse.",
+          r:"\u201cWith him, the fiancé, everything felt like it mattered too much. With the one after, nothing really had to.\u201d",
+          s:6,u:9,d:2,
+          w:"A genuinely revealing answer: stakes that felt unbearable with one partner, and a kind of relief in stakes that didn't matter with the next." },
+        { l:"What did the marijuana use actually threaten, do you think?",
+          t:"Mild substance use as a deal-breaker is specific enough that it probably meant something particular to her, not drugs in general.",
+          r:"\u201cHe was different, suddenly. Like I didn't totally know him anymore.\u201d",
+          s:8,u:8,d:2,
+          w:"Gets at the real threat: not the drug itself, but a partner becoming someone less known, less predictable." },
+        { l:"The boyfriend after him was sometimes verbally abusive, by your account. What kept you in that?",
+          t:"This matters, and I want to ask it carefully, without it sounding like I'm asking her to justify staying.",
+          r:"\u201cAt least he felt something about me. Even if it wasn't kind.\u201d",
+          s:10,u:7,d:2,
+          w:"A difficult, important admission: being the target of strong feeling, even hostile feeling, over being met with nothing at all." },
+        { l:"Isn't it strange that you'd leave over something so minor and then accept something so much worse?",
+          t:"It's the obvious puzzle in the case, and I think naming the contradiction plainly might help her see it.",
+          r:"\u201cWhen you put it that way it sounds insane. Thanks for that.\u201d",
+          s:21,u:-6,d:1,
+          w:"True, but framed as a contradiction to explain, it sounds like a verdict on her judgment rather than an invitation to understand it from the inside." },
+        { l:"Honestly, that does sound like it was probably just about the weed itself.",
+          t:"I want to take her account at face value and move on.",
+          r:"\u201cRight, yeah. The weed thing.\u201d She says it too easily, like the real answer was never that simple.",
+          s:2,u:2,d:0, polish:true,
+          w:"Accepts the surface reason she gave, which both of you seem to already know isn't the whole story. A polished non-answer that closes a door worth staying at." }
+      ]},
+    { title:"What would you actually try",
+      ctx:"You've been seeing Ariana for a while now. It's time to think about what the real work here should be, and what you owe her that she may not be getting from the people around her.",
+      said:"\u201cSo, what's the actual plan here? What are we supposed to be doing?\u201d",
+      options:[
+        { l:"Let's focus on naming feelings as they happen in the room, even small ones, in real time.",
+          t:"Affect labeling in the moment, rather than retrospective discussion, might build a vocabulary she doesn't currently have.",
+          r:"\u201cThat sounds kind of tedious. But okay.\u201d",
+          s:4,u:8,d:2,
+          w:"Risk: it can feel like homework, or one more performance to get right, if it isn't tied to something she actually cares about." },
+        { l:"Let's look hard at the pattern with partners: mild deal-breakers versus real harm, and what each one gets you.",
+          t:"The relational pattern seems like one of the clearest windows into what she's avoiding and what she's drawn to.",
+          r:"\u201cThat's the one I actually don't want to look at. Which probably means we should.\u201d",
+          s:9,u:7,d:2,
+          w:"Risk: this is close to the most defended material in her life. Going there too fast, without enough built trust, could shut the work down entirely." },
+        { l:"Let's not push insight right now. Let's find one place in your life where something actually feels good, with no analysis attached.",
+          t:"Given how flooded with interpretation her life already is, from diagnoses to family narratives, maybe what she needs first is one undissected good thing.",
+          r:"\u201cHuh. Nobody's really suggested that before.\u201d",
+          s:-5,u:6,d:1,
+          w:"Risk: without ever connecting it back to the harder material, this stays pleasant without becoming change." },
+        { l:"Let's bring your father in for a session, and address the financial dependency directly.",
+          t:"The money may be structurally central to why nothing changes, so maybe the system around her needs to shift, not just her.",
+          r:"\u201cHe'd actually probably come. I don't know if I want him to, though.\u201d",
+          s:13,u:2,d:2,
+          w:"Risk: this could easily become about managing her father's anxiety rather than hers, and she may feel like the identified problem all over again." },
+        { l:"The flatness isn't a character flaw. It's protecting you from something, and finding out what is the actual work.",
+          t:"Naming the frame of the whole therapy directly and honestly seems respectful of her intelligence.",
+          r:"\u201cOkay. That's either the most honest thing anyone's said to me, or the scariest.\u201d",
+          rr:"\u201cOkay. I think I'm ready to find out which.\u201d",
+          s:17,u:4,d:2, ripe:50,
+          w:"With enough trust already built, this can land as the clearest, most respectful version of the truth she's been given. Too early, it's a lot to hear at once, even if every word is accurate." }
+      ]}
+  ];
+
+  const OUTRO_COMMON = { kind:"narr", text:"Across the hour, the flattest answers came fastest, and the moments something real almost surfaced, something usually arrived to end them: a shrug, a joke, a glance at the phone." };
+  const OUTRO_TAIL = {
+    breakthrough:[ { kind:"narr", text:"She gathers her things slowly, in no particular hurry to leave." },
+                   { kind:"nik", text:"\u201cThis was a strange session,\u201d she says. \u201cGood strange, I think. Same time next week?\u201d" } ],
+    bruised:[ { kind:"narr", text:"She stayed composed through all of it, even the harder parts." },
+              { kind:"nik", text:"\u201cThat was a lot,\u201d she says, already smoothing her expression back into place. \u201cI'll see you next week, I guess.\u201d" } ],
+    polish:[ { kind:"narr", text:"She agreed with nearly everything, pleasantly, the entire hour." },
+             { kind:"nik", text:"\u201cThis was really helpful, thank you,\u201d she says, already reaching for her phone before she's fully out the door." } ],
+    composed:[ { kind:"narr", text:"The hour passed calmly. Very little in it asked anything difficult of her." },
+               { kind:"nik", text:"\u201cSame time next week,\u201d she says, perfectly pleasant, already somewhere else." } ]
+  };
+  const ENDINGS = {
+    checkout:{ title:"The Scroll", desc:"Ariana doesn't storm out. She goes quiet, picks up her phone, and answers what's asked in the fewest possible words for the rest of the hour. She didn't disengage because nothing was said right. She disengaged because, for a moment, something almost got through, and going still is how she's always handled that." },
+    breakthrough:{ title:"The Flicker", desc:"Nothing about Ariana's flatness resolved in one session. But twice, maybe three times, something crossed her face before she could smooth it back, awake instead of composed, and she stayed in the room for it rather than reaching for her phone." },
+    bruised:{ title:"The Bruised Hour", desc:"You reached real material, the boredom standing in for something else, the relationship pattern, the twin comparison, but the alliance was still thin when you got there. She stayed, composed, and whether she brings any of it back next week is genuinely unclear." },
+    polish:{ title:"The Polished Hour", desc:"She was pleasant and articulate throughout, answered everything asked, and agreed with nearly all of it. Almost nothing in the hour was hers. It's easy to leave a session like this feeling like good work happened. It's worth asking what you actually learned that you didn't already know." },
+    composed:{ title:"The Composed Hour", desc:"She was calm, polite, and present the entire time, and very little moved. Like most of her relationships, the hour asked nothing difficult of her, which may be exactly why she can tolerate it." }
+  };
+  const LABELS = ["Start","Opening","Statue","Twin","Family","Drama","Pattern","Plan"];
+  const MOUTH = { calm:"M43 58h14", guarded:"M43 59q7 2 14 0", tense:"M43 60q7 -4 14 0" };
+
+  const titleEl = document.getElementById('title');
+  const startBtn = document.getElementById('start-btn');
+  const wrap = document.getElementById('dialogue-wrap');
+  const box = document.getElementById('box');
+  const portraitEl = document.getElementById('portrait');
+  const speakerEl = document.getElementById('speaker');
+  const lineEl = document.getElementById('line');
+  const choicesEl = document.getElementById('choices');
+  const hintEl = document.getElementById('hint');
+  const resultsEl = document.getElementById('results');
+  const hud = document.getElementById('hud');
+  const pFill = document.getElementById('p-fill');
+  const trustFill = document.getElementById('trust-fill');
+  const pState = document.getElementById('p-state');
+  const trustState = document.getElementById('trust-state');
+  const mouth = document.getElementById('mouth');
+
+  let queue = [], mi = 0, current = null, ended = null;
+  let detach = 24, trust = 20, depth = 0, polishCount = 0, history = [], picks = [];
+
+  function clamp(v){ return Math.max(0, Math.min(100, v)); }
+  function dLabel(v){ return v < 25 ? "Present" : v < 55 ? "Composed" : v < 80 ? "Distant" : "Checked out"; }
+  function trustLabel(v){ return v < 25 ? "Wary" : v < 45 ? "Testing" : v < 65 ? "Opening" : "Engaged"; }
+
+  function setHud(s,t){
+    pFill.style.width = s + "%";
+    pFill.style.background = s < 30 ? "#9fb3c9" : (s < 65 ? "#c9a876" : "#c9563f");
+    trustFill.style.width = t + "%";
+    pState.textContent = dLabel(s);
+    trustState.textContent = trustLabel(t);
+    mouth.setAttribute("d", s < 55 ? MOUTH.calm : (s < 80 ? MOUTH.guarded : MOUTH.tense));
+    portraitEl.classList.toggle("warn", s >= 55 && s < 80);
+    portraitEl.classList.toggle("hot", s >= 80);
+  }
+
+  function resetGame(){
+    detach = 24; trust = 20; depth = 0; polishCount = 0; history = [{ s:24, t:20 }]; picks = [];
+    ended = null; queue = []; mi = 0; current = null;
+    setHud(24, 20);
+  }
+
+  function startMoment(i){
+    const m = moments[i];
+    if(i > 0 && !m.check) detach = Math.max(0, detach - 4);
+    queue = [
+      { kind:"narr", text:m.ctx, meters:{ s:detach, t:trust } },
+      { kind: m.check ? "check" : "nik", text:m.said, options:m.options, idx:i }
+    ];
+    nextNode();
+  }
+
+  function endingKey(peakD){
+    if(peakD >= 100) return "checkout";
+    if(trust >= 60 && depth >= 9 && peakD <= 75) return "breakthrough";
+    if(depth >= 9) return "bruised";
+    if(polishCount >= 3 && depth < 6) return "polish";
+    return "composed";
+  }
+
+  function nextNode(){
+    if(queue.length){ show(queue.shift()); return; }
+    if(ended){ showResults(); return; }
+    mi++;
+    if(mi < moments.length){ startMoment(mi); return; }
+    const peakD = Math.max.apply(null, history.map(h => h.s));
+    ended = endingKey(peakD);
+    queue = [OUTRO_COMMON].concat(OUTRO_TAIL[ended]);
+    nextNode();
+  }
+
+  function choose(idx, k){
+    const m = moments[idx];
+    const o = m.options[k];
+    if(m.check){
+      picks[idx] = { k:k, check:true };
+      queue = [ { kind:"think", text:o.t } ];
+      nextNode();
+      return;
+    }
+    const prevD = detach;
+    let dS = o.s, dT = o.u, timing = null, reply = o.r;
+    if(o.ripe !== undefined){
+      if(trust >= o.ripe){ timing = "ripe"; dS = Math.round(o.s * 0.3); dT = 10; reply = o.rr; }
+      else { timing = "early"; }
+    }
+    if(dS > 0 && detach >= 65) dS = Math.round(dS * 1.25);
+    detach = clamp(detach + dS);
+    trust = clamp(trust + dT);
+    const dd = dS >= 20 ? 0 : (o.d || 0);
+    depth += dd;
+    if(o.polish) polishCount++;
+    history.push({ s:detach, t:trust });
+    picks[idx] = { k:k, dS:dS, dT:dT, timing:timing, dd:dd, reply:reply };
+    queue = [
+      { kind:"think", text:o.t },
+      { kind:"nik", text:reply, meters:{ s:detach, t:trust } }
+    ];
+    if(detach >= 100){
+      ended = "checkout";
+      queue.push({ kind:"narr", text:"Ariana picks up her phone and doesn't quite put it back down. \u201cSorry, can we just, I don't know, talk about something else,\u201d she says, eyes on the screen, and stays that way for the rest of the hour." });
+    } else if(prevD < 80 && detach >= 80){
+      queue.push({ kind:"narr", text:"Her answers have gone from brief to monosyllabic, and her hand keeps drifting toward her phone. One more push and she may go quiet for good today." });
+    }
+    nextNode();
+  }
+
+  function show(node){
+    current = node;
+    if(node.meters) setHud(node.meters.s, node.meters.t);
+    box.className = node.kind === "narr" ? "narration" : ((node.kind === "think" || node.kind === "check") ? "thought" : "");
+    portraitEl.classList.toggle('hidden-p', node.kind !== "nik");
+    speakerEl.textContent = node.kind === "narr" ? "Narrator" : (node.kind === "think" ? "You, thinking" : (node.kind === "check" ? "A pause" : "Ariana"));
+    lineEl.textContent = node.text;
+    choicesEl.innerHTML = "";
+    if(node.options){
+      choicesEl.classList.remove('hidden');
+      hintEl.classList.add('hidden');
+      box.style.cursor = "default";
+      node.options.forEach((o,k)=>{
+        const b = document.createElement('button');
+        b.className = 'choice-btn'; b.type = 'button';
+        b.innerHTML = '<span class="choice-label">'+o.l+'</span>';
+        b.addEventListener('click', (e)=>{ e.stopPropagation(); choose(node.idx, k); });
+        choicesEl.appendChild(b);
+      });
+      box.scrollTop = 0;
+    } else {
+      choicesEl.classList.add('hidden');
+      hintEl.classList.remove('hidden');
+      box.style.cursor = "pointer";
+    }
+  }
+
+  function advance(){
+    if(!current || current.options) return;
+    nextNode();
+  }
+  box.addEventListener('click', advance);
+  box.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); advance(); } });
+
+  function fmt(dS, dT){
+    return "Detachment " + (dS > 0 ? "+" : "") + dS + " \u00b7 Trust " + (dT > 0 ? "+" : "") + dT;
+  }
+  function altEffect(o){
+    let base;
+    if(o.ripe === undefined) base = fmt(o.s, o.u);
+    else base = "Too early: " + fmt(o.s, o.u) + ". Once trust is " + o.ripe + " or higher: " + fmt(Math.round(o.s * 0.3), 10);
+    return base + (o.polish ? " \u00b7 Polished non-answer" : "");
+  }
+
+  function chartSVG(){
+    const n = history.length, x0 = 18, x1 = 302, top = 12, bottom = 104;
+    const xs = i => n > 1 ? x0 + (x1 - x0) * i / (n - 1) : x0;
+    const ys = v => bottom - (bottom - top) * v / 100;
+    const line = (key, color) => {
+      const pts = history.map((h,i)=> xs(i).toFixed(1) + "," + ys(h[key]).toFixed(1)).join(" ");
+      const dots = history.map((h,i)=> '<circle cx="'+xs(i).toFixed(1)+'" cy="'+ys(h[key]).toFixed(1)+'" r="2.8" fill="'+color+'"/>').join("");
+      return '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2"/>' + dots;
+    };
+    const labels = history.map((h,i)=> '<text x="'+xs(i).toFixed(1)+'" y="120" font-size="8" text-anchor="middle" fill="#9a9fa8">'+(LABELS[i]||"")+'</text>').join("");
+    return '<svg viewBox="0 0 320 128" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Detachment and trust across the session">'+
+      '<line x1="'+x0+'" y1="'+top+'" x2="'+x1+'" y2="'+top+'" stroke="#c9563f" stroke-dasharray="3 3" stroke-width="1"/>'+
+      '<text x="'+x1+'" y="8" font-size="7" text-anchor="end" fill="#c9563f">checkout line</text>'+
+      line("s","#c9a876") + line("t","#cfa992") + labels + '</svg>';
+  }
+
+  const notes = document.getElementById('notes');
+  const saveHint = document.getElementById('save-hint');
+  try{
+    notes.addEventListener('input', ()=>{
+      try{ localStorage.setItem('ariana-notes', notes.value); saveHint.textContent = 'Saved in this browser.'; }
+      catch(e){ saveHint.textContent = ''; }
+    });
+  } catch(e){}
+
+  function showResults(){
+    wrap.classList.add('hidden');
+    hud.classList.add('hidden');
+    resultsEl.classList.remove('hidden');
+    resultsEl.scrollTop = 0;
+
+    const end = ENDINGS[ended];
+    document.getElementById('end-title').textContent = end.title;
+    document.getElementById('end-desc').textContent = end.desc;
+    document.getElementById('chart').innerHTML = chartSVG();
+    const peak = Math.max.apply(null, history.map(h => h.s));
+    document.getElementById('end-stats').textContent =
+      "Peak detachment: " + peak + " of 100 \u00b7 Final trust: " + trust + " of 100 \u00b7 Real material reached: " + depth + " of 14 \u00b7 Polished non-answers: " + polishCount;
+
+    const rev = document.getElementById('review');
+    rev.innerHTML = "";
+    picks.forEach((p,i)=>{
+      const m = moments[i], o = m.options[p.k];
+      const div = document.createElement('div');
+      div.className = 'rev';
+      if(p.check){
+        div.innerHTML =
+          '<div class="rev-title">'+(i+1)+'. '+m.title+'</div>'+
+          '<div class="rev-said">You noticed: '+o.l+'</div>'+
+          '<p class="rev-why">'+o.t+'</p>'+
+          '<p class="rev-why">Not scored. Bring it to your group: what in Ariana might be evoking that reaction, and what would you do with it?</p>';
+        rev.appendChild(div);
+        return;
+      }
+      const others = m.options.map((x,k)=>({x:x,k:k})).filter(e => e.k !== p.k);
+      let chips = '<span class="chip">'+fmt(p.dS, p.dT)+'</span>';
+      if(p.timing === "ripe") chips += '<span class="chip ok">Well timed</span>';
+      if(p.timing === "early") chips += '<span class="chip bad">Too early</span>';
+      if(o.polish) chips += '<span class="chip bad">Polished non-answer</span>';
+      div.innerHTML =
+        '<div class="rev-title">'+(i+1)+'. '+m.title+'</div>'+
+        '<div class="rev-said">You said: '+o.l+'</div>'+
+        '<div class="rev-react">'+p.reply+'</div>'+ chips +
+        '<p class="rev-why">'+o.w+'</p>'+
+        ((ended === "checkout" && i === picks.length - 1) ? '<p class="rev-why" style="color:#e08a76;">This is where she checked out.</p>' : '')+
+        '<details><summary>Other paths and how they would have landed</summary>'+
+        others.map(e=>'<div class="alt"><strong>'+e.x.l+'</strong><br><span class="chip">'+altEffect(e.x)+'</span><br>'+e.x.w+'</div>').join("")+
+        '</details>';
+      rev.appendChild(div);
+    });
+
+    try{
+      const saved = localStorage.getItem('ariana-notes');
+      if(saved && !notes.value) notes.value = saved;
+    } catch(e){}
+  }
+
+  startBtn.addEventListener('click', ()=>{
+    resetGame();
+    titleEl.classList.add('hidden');
+    hud.classList.remove('hidden');
+    wrap.classList.remove('hidden');
+    startMoment(0);
+    box.focus();
+  });
+
+  document.getElementById('restart-btn').addEventListener('click', ()=>{
+    resetGame();
+    resultsEl.classList.add('hidden');
+    titleEl.classList.remove('hidden');
+  });
+
+  resetGame();
+})();
+</script>
+</body>
+</html>
